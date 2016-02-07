@@ -79,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             if (NetworkUtils.isNetworkAvailable(this)) {
                 // YES, do the network call!
-                fetchData(Constants.ORDER_BY_POPULARITY);
+                fetchMovies(Constants.ORDER_BY_POPULARITY);
             } else {
                 // NO, show toast
                 Toast.makeText(this, getString(R.string.network_unavailable_message),
@@ -101,15 +101,20 @@ public class MainActivity extends AppCompatActivity {
         adapter = new MovieAdapter(MainActivity.this, movies);
         moviesView.setAdapter(adapter);
         // Click listener
-        moviesView.addOnItemTouchListener(new RecyclerItemClickListener(MainActivity.this,
+        moviesView.addOnItemTouchListener(
+                new RecyclerItemClickListener(MainActivity.this,
                         new RecyclerItemClickListener.OnItemClickListener() {
                             @Override
                             public void onItemClick(View view, int position) {
                                 Intent intent = new Intent(MainActivity.this, DetailActivity.class);
                                 if (!movies.get(position).getPoster().isEmpty()) {
                                     intent.putExtra(MOVIE_DATA, movies.get(position));
+                                    startActivity(intent);
+                                } else {
+                                    Toast.makeText(MainActivity.this, R.string.corrupt_movie_data_error,
+                                            Toast.LENGTH_LONG).show();
                                 }
-                                startActivity(intent);
+
                             }
                         })
         );
@@ -123,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void fetchData(String orderBy) {
+    private void fetchMovies(String orderBy) {
         progressBar.setVisibility(View.VISIBLE);
         String url = Constants.BASE_URL;
         url += "?sort_by=" + orderBy;
@@ -148,7 +153,7 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     String jsonData = response.body().string();
                     if (response.isSuccessful()) {
-                        getMovieData(jsonData);
+                        getMoviesData(jsonData);
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
@@ -167,7 +172,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Populates movies data object
-    private void getMovieData(String jsonData) throws JSONException {
+    private void getMoviesData(String jsonData) throws JSONException {
         movies.clear();
         JSONObject moviesObject = new JSONObject(jsonData);
         JSONArray moviesArray = moviesObject.getJSONArray("results");
@@ -175,9 +180,11 @@ public class MainActivity extends AppCompatActivity {
             JSONObject movieObject = moviesArray.getJSONObject(i);
 
             Movie movie = new Movie();
+            movie.setId(movieObject.getString(Constants.MOVIE_ID));
             movie.setTitle(movieObject.getString(Constants.MOVIE_TITLE));
             movie.setReleaseDate(movieObject.getString(Constants.MOVIE_RELEASE_DATE));
             movie.setPoster(movieObject.getString(Constants.MOVIE_POSTER));
+            movie.setBackdrop(movieObject.getString(Constants.MOVIE_BACKDROP));
             movie.setVoteAverage(movieObject.getString(Constants.MOVIE_VOTE_AVERAGE));
             movie.setPlot(movieObject.getString(Constants.MOVIE_PLOT));
 
@@ -211,18 +218,18 @@ public class MainActivity extends AppCompatActivity {
         switch (item.getItemId()) {
             case R.id.action_popular:
                 currentSortType = "popular";
-                fetchData(Constants.ORDER_BY_POPULARITY);
+                fetchMovies(Constants.ORDER_BY_POPULARITY);
                 break;
             case R.id.action_top_rated:
                 currentSortType = "top";
-                fetchData(Constants.ORDER_BY_VOTES);
+                fetchMovies(Constants.ORDER_BY_VOTES);
                 break;
             case R.id.action_refresh:
                 progressBar.setVisibility(View.VISIBLE);
                 if (currentSortType.equals("top")) {
-                    fetchData(Constants.ORDER_BY_POPULARITY);
+                    fetchMovies(Constants.ORDER_BY_POPULARITY);
                 } else {
-                    fetchData(Constants.ORDER_BY_VOTES);
+                    fetchMovies(Constants.ORDER_BY_VOTES);
                 }
                 break;
         }

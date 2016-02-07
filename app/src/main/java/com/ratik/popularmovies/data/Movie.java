@@ -15,14 +15,25 @@ import java.util.Date;
 public class Movie implements Parcelable {
     private static final String TAG = Movie.class.getSimpleName();
 
+    private String id;
     private String title;
     private String releaseDate;
     private String poster;
+    private String backdrop;
     private String voteAverage;
     private String plot;
+    private String trailerURL;
 
     public Movie() {
         // Empty Constructor
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getTitle() {
@@ -64,6 +75,21 @@ public class Movie implements Parcelable {
         return poster;
     }
 
+    public String getBackdropUrl() {
+        String basePath = "http://image.tmdb.org/t/p";
+        String backdropWidth = "/w342";
+
+        return basePath + backdropWidth + backdrop;
+    }
+
+    public String getBackdrop() {
+        return backdrop;
+    }
+
+    public void setBackdrop(String backdrop) {
+        this.backdrop = backdrop;
+    }
+
     public String getVoteAverage() {
         return voteAverage;
     }
@@ -80,6 +106,14 @@ public class Movie implements Parcelable {
         this.plot = plot;
     }
 
+    public String getTrailerURL() {
+        return trailerURL;
+    }
+
+    public void setTrailerURL(String trailerURL) {
+        this.trailerURL = trailerURL;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -87,19 +121,25 @@ public class Movie implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(id);
         dest.writeString(title);
         dest.writeString(releaseDate);
         dest.writeString(poster);
+        dest.writeString(backdrop);
         dest.writeString(voteAverage);
         dest.writeString(plot);
+        dest.writeString(trailerURL);
     }
 
     private Movie(Parcel in) {
+        id = in.readString();
         title = in.readString();
         releaseDate = in.readString();
         poster = in.readString();
+        backdrop = in.readString();
         voteAverage = in.readString();
         plot = in.readString();
+        trailerURL = in.readString();
     }
 
     public static final Creator<Movie> CREATOR = new Creator<Movie>() {

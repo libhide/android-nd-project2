@@ -6,5 +6,5 @@
     android:layout_height="wrap_content"
     android:adjustViewBounds="true"
     android:scaleType="fitXY"
-    tools:src="@drawable/dummy_poster"
+    tools:src="@drawable/dummy_backdrop"
     tools:ignore="ContentDescription" />
