@@ -20,7 +20,6 @@ import com.ratik.popularmovies.R;
 import com.ratik.popularmovies.data.Movie;
 import com.ratik.popularmovies.helpers.Constants;
 import com.ratik.popularmovies.helpers.ErrorUtils;
-import com.ratik.popularmovies.helpers.NetworkUtils;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
@@ -54,22 +53,9 @@ public class DetailActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail);
 
-
-
         // Get data
         Intent intent = getIntent();
         movie = intent.getParcelableExtra(MainActivity.MOVIE_DATA);
-
-        progressBar = (ProgressBar) findViewById(R.id.progressBar);
-
-        if (NetworkUtils.isNetworkAvailable(this)) {
-            // YES, do the network call!
-            fetchVideoData();
-        } else {
-            // NO, show toast
-            Toast.makeText(this, getString(R.string.network_unavailable_message),
-                    Toast.LENGTH_LONG).show();
-        }
 
         // Set the toolbar
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -82,14 +68,16 @@ public class DetailActivity extends AppCompatActivity {
         collapsingToolbar.setTitle(movie.getTitle());
 
         // Set up views
+        progressBar = (ProgressBar) findViewById(R.id.progressBar);
         final ImageView playImage = (ImageView) findViewById(R.id.playImage);
         TextView titleTextView = (TextView) findViewById(R.id.titleTextView);
         ImageView posterImageView = (ImageView) findViewById(R.id.posterImageView);
-        final TextView overviewTextView = (TextView) findViewById(R.id.overviewTextView);
+        TextView overviewTextView = (TextView) findViewById(R.id.overviewTextView);
         TextView releaseDateTextView = (TextView) findViewById(R.id.releaseDateTextView);
         TextView voteAverageTextView = (TextView) findViewById(R.id.voteAverageTextView);
-
         ImageView movieBackdrop = (ImageView) findViewById(R.id.movieImage);
+
+        // Fill in data
         Picasso.with(this).load(movie.getBackdropUrl()).into(movieBackdrop, new Callback() {
             @Override
             public void onSuccess() {
@@ -102,7 +90,6 @@ public class DetailActivity extends AppCompatActivity {
             }
         });
 
-        // Fill in data
         titleTextView.setText(movie.getTitle());
         Picasso.with(this).load(movie.getPosterUrl()).into(posterImageView);
         overviewTextView.setText(movie.getPlot());
@@ -110,16 +97,11 @@ public class DetailActivity extends AppCompatActivity {
         voteAverageTextView.setText(String.format(getString(R.string.vote_average_placeholder),
                 movie.getVoteAverage()));
 
+        // Click listeners
         playImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Play trailer
-                if (movie.getTrailerURL() != null) {
-                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(movie.getTrailerURL())));
-                } else {
-                    Toast.makeText(DetailActivity.this, "No trailer available. Sorry!",
-                            Toast.LENGTH_SHORT).show();
-                }
+                fetchVideoData();
             }
         });
 
@@ -150,8 +132,7 @@ public class DetailActivity extends AppCompatActivity {
         videosCall.enqueue(new okhttp3.Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                // Preventing failure by taking steps prior to the
-                // network call
+                // Unimplemented
             }
 
             @Override
@@ -159,17 +140,17 @@ public class DetailActivity extends AppCompatActivity {
                 try {
                     String jsonData = response.body().string();
                     if (response.isSuccessful()) {
-                        JSONObject movieObject = new JSONObject(jsonData);
-                        JSONArray moviesArray = movieObject.getJSONArray("results");
-                        JSONObject movieTrailer = moviesArray.getJSONObject(0);
-                        String trailerURL = Constants.YT_BASE_URL + movieTrailer.getString("key");
-                        movie.setTrailerURL(trailerURL);
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
                                 progressBar.setVisibility(View.INVISIBLE);
                             }
                         });
+                        JSONObject movieObject = new JSONObject(jsonData);
+                        JSONArray moviesArray = movieObject.getJSONArray("results");
+                        JSONObject movieTrailer = moviesArray.getJSONObject(0);
+                        String trailerURL = Constants.YT_BASE_URL + movieTrailer.getString("key");
+                        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(trailerURL)));
                     } else {
                         ErrorUtils.showGenericError(DetailActivity.this);
                     }
@@ -178,6 +159,8 @@ public class DetailActivity extends AppCompatActivity {
                         @Override
                         public void run() {
                             progressBar.setVisibility(View.INVISIBLE);
+                            Toast.makeText(DetailActivity.this, "No trailer available. Sorry!",
+                                    Toast.LENGTH_SHORT).show();
                         }
                     });
                     Log.e(TAG, "Exception caught:", e);
