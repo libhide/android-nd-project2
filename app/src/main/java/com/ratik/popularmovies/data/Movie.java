@@ -22,7 +22,6 @@ public class Movie implements Parcelable {
     private String backdrop;
     private String voteAverage;
     private String plot;
-    private String trailerURL;
 
     public Movie() {
         // Empty Constructor
@@ -106,14 +105,6 @@ public class Movie implements Parcelable {
         this.plot = plot;
     }
 
-    public String getTrailerURL() {
-        return trailerURL;
-    }
-
-    public void setTrailerURL(String trailerURL) {
-        this.trailerURL = trailerURL;
-    }
-
     @Override
     public int describeContents() {
         return 0;
@@ -128,7 +119,6 @@ public class Movie implements Parcelable {
         dest.writeString(backdrop);
         dest.writeString(voteAverage);
         dest.writeString(plot);
-        dest.writeString(trailerURL);
     }
 
     private Movie(Parcel in) {
@@ -139,7 +129,6 @@ public class Movie implements Parcelable {
         backdrop = in.readString();
         voteAverage = in.readString();
         plot = in.readString();
-        trailerURL = in.readString();
     }
 
     public static final Creator<Movie> CREATOR = new Creator<Movie>() {

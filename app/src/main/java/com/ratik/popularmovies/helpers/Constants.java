@@ -11,6 +11,7 @@ public class Constants {
     public static final String ORDER_BY_POPULARITY = "popularity.desc";
     public static final String ORDER_BY_VOTES = "vote_average.desc";
 
+    // Other GET constants
     public static final String YT_BASE_URL = "http://youtube.com/watch?v=";
 
     // Movie features constants
@@ -21,5 +22,4 @@ public class Constants {
     public static final String MOVIE_BACKDROP = "backdrop_path";
     public static final String MOVIE_VOTE_AVERAGE = "vote_average";
     public static final String MOVIE_PLOT = "overview";
-
 }

@@ -23,6 +23,7 @@ import com.ratik.popularmovies.data.Movie;
 import com.ratik.popularmovies.helpers.Constants;
 import com.ratik.popularmovies.helpers.ErrorUtils;
 import com.ratik.popularmovies.helpers.NetworkUtils;
+import com.ratik.popularmovies.helpers.PrefsUtils;
 import com.ratik.popularmovies.listeners.RecyclerItemClickListener;
 
 import org.json.JSONArray;
@@ -46,6 +47,10 @@ public class MainActivity extends AppCompatActivity {
     public static final String MOVIES_DATA = "movies_data";
     private static final String RV_SCROLL_POS = "scroll_position";
 
+    public static final String SORT_BY_POPULARITY = "popularity";
+    public static final String SORT_BY_RATING = "rating";
+    public static final String SORT_BY_FAVE = "fave";
+
     // Views
     private RecyclerView moviesView;
     private ProgressBar progressBar;
@@ -57,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
     // Misc
     private RecyclerView.LayoutManager layoutManager;
     private Parcelable rvState;
-    private String currentSortType = "popular";
+    private String currentSortType = SORT_BY_POPULARITY;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,12 +79,18 @@ public class MainActivity extends AppCompatActivity {
 
         // State check
         if (savedInstanceState != null) {
+            currentSortType = PrefsUtils.getSortType(this);
             movies = (ArrayList<Movie>) savedInstanceState.getSerializable(MOVIES_DATA);
             progressBar.setVisibility(View.INVISIBLE);
         } else {
+            currentSortType = PrefsUtils.getSortType(this);
             if (NetworkUtils.isNetworkAvailable(this)) {
                 // YES, do the network call!
-                fetchMovies(Constants.ORDER_BY_POPULARITY);
+                if (currentSortType.equals(SORT_BY_POPULARITY)) {
+                    fetchMovies(Constants.ORDER_BY_POPULARITY);
+                } else {
+                    fetchMovies(Constants.ORDER_BY_VOTES);
+                }
             } else {
                 // NO, show toast
                 Toast.makeText(this, getString(R.string.network_unavailable_message),
@@ -217,20 +228,18 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_popular:
-                currentSortType = "popular";
+                currentSortType = SORT_BY_POPULARITY;
+                // Save sort type
+                PrefsUtils.setSortType(this, currentSortType);
+                // Fetch movies
                 fetchMovies(Constants.ORDER_BY_POPULARITY);
                 break;
             case R.id.action_top_rated:
-                currentSortType = "top";
+                currentSortType = SORT_BY_RATING;
+                // Save sort type
+                PrefsUtils.setSortType(this, currentSortType);
+                // Fetch movies
                 fetchMovies(Constants.ORDER_BY_VOTES);
-                break;
-            case R.id.action_refresh:
-                progressBar.setVisibility(View.VISIBLE);
-                if (currentSortType.equals("top")) {
-                    fetchMovies(Constants.ORDER_BY_POPULARITY);
-                } else {
-                    fetchMovies(Constants.ORDER_BY_VOTES);
-                }
                 break;
         }
         return super.onOptionsItemSelected(item);
