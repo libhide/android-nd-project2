@@ -13,4 +13,5 @@
     <string name="type_popular">Popular Movies</string>
     <string name="type_top_rated">Top-rated Movies</string>
     <string name="corrupt_movie_data_error">The data for the movie is incomplete. Sorry!</string>
+    <string name="share">Share</string>
 </resources>

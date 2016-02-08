@@ -9,8 +9,10 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.CollapsingToolbarLayout;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.ShareActionProvider;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -51,6 +53,8 @@ public class DetailActivity extends AppCompatActivity {
     private ArrayList<String> trailerUrls;
 
     private ProgressDialog progressDialog;
+
+    private ShareActionProvider shareActionProvider;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -178,12 +182,14 @@ public class DetailActivity extends AppCompatActivity {
                         });
                         JSONObject movieObject = new JSONObject(jsonData);
                         JSONArray moviesArray = movieObject.getJSONArray("results");
+
                         ArrayList<String> urls = new ArrayList<>();
                         for (int i = 0; i < moviesArray.length(); i++) {
                             JSONObject movieTrailer = moviesArray.getJSONObject(i);
                             String trailerURL = Constants.YT_BASE_URL + movieTrailer.getString("key");
                             urls.add(trailerURL);
                         }
+
                         trailerUrls = urls;
                         movie.setTrailerUrls(urls);
                     } else {
@@ -197,11 +203,30 @@ public class DetailActivity extends AppCompatActivity {
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_detail, menu);
+        return true;
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
-            onBackPressed();
-            return true;
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                onBackPressed();
+                break;
+            case R.id.action_share:
+                if (trailerUrls != null) {
+                    if (trailerUrls.size() != 0) {
+                        String url = movie.getTrailerUrls().get(0);
+                        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                        String message = String.format("Check this %s trailer out! It's awesome!\n\n%s", movie.getTitle(), url);
+                        shareIntent.putExtra(Intent.EXTRA_TEXT, message);
+                        shareIntent.setType("text/plain");
+                        startActivity(Intent.createChooser(shareIntent, getString(com.ratik.popularmovies.R.string.share)));
+                    }
+                }
+                break;
         }
-        return super.onOptionsItemSelected(item);
+        return true;
     }
 }
