@@ -7,6 +7,7 @@ import android.util.Log;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 
 /**
@@ -22,6 +23,7 @@ public class Movie implements Parcelable {
     private String backdrop;
     private String voteAverage;
     private String plot;
+    private ArrayList<String> trailerUrls;
 
     public Movie() {
         // Empty Constructor
@@ -76,7 +78,7 @@ public class Movie implements Parcelable {
 
     public String getBackdropUrl() {
         String basePath = "http://image.tmdb.org/t/p";
-        String backdropWidth = "/w342";
+        String backdropWidth = "/w500";
 
         return basePath + backdropWidth + backdrop;
     }
@@ -105,6 +107,14 @@ public class Movie implements Parcelable {
         this.plot = plot;
     }
 
+    public ArrayList<String> getTrailerUrls() {
+        return trailerUrls;
+    }
+
+    public void setTrailerUrls(ArrayList<String> trailerUrls) {
+        this.trailerUrls = trailerUrls;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -119,6 +129,7 @@ public class Movie implements Parcelable {
         dest.writeString(backdrop);
         dest.writeString(voteAverage);
         dest.writeString(plot);
+        dest.writeList(trailerUrls);
     }
 
     private Movie(Parcel in) {
@@ -129,6 +140,8 @@ public class Movie implements Parcelable {
         backdrop = in.readString();
         voteAverage = in.readString();
         plot = in.readString();
+        trailerUrls = new ArrayList<String>();
+        in.readList(trailerUrls, null);
     }
 
     public static final Creator<Movie> CREATOR = new Creator<Movie>() {

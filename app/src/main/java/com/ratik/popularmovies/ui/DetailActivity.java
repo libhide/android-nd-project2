@@ -1,5 +1,8 @@
 package com.ratik.popularmovies.ui;
 
+import android.app.AlertDialog;
+import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -10,8 +13,8 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.ImageView;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -28,6 +31,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
@@ -44,18 +48,24 @@ public class DetailActivity extends AppCompatActivity {
 
     // Data
     private Movie movie;
+    private ArrayList<String> trailerUrls;
 
-    // Views
-    private ProgressBar progressBar;
+    private ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail);
 
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Please wait...");
+        progressDialog.show();
+
         // Get data
         Intent intent = getIntent();
         movie = intent.getParcelableExtra(MainActivity.MOVIE_DATA);
+
+        fetchVideoData();
 
         // Set the toolbar
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -68,7 +78,6 @@ public class DetailActivity extends AppCompatActivity {
         collapsingToolbar.setTitle(movie.getTitle());
 
         // Set up views
-        progressBar = (ProgressBar) findViewById(R.id.progressBar);
         final ImageView playImage = (ImageView) findViewById(R.id.playImage);
         TextView titleTextView = (TextView) findViewById(R.id.titleTextView);
         ImageView posterImageView = (ImageView) findViewById(R.id.posterImageView);
@@ -101,23 +110,44 @@ public class DetailActivity extends AppCompatActivity {
         playImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                fetchVideoData();
+                int numberOfTrailer = trailerUrls.size();
+                if (numberOfTrailer == 0) {
+                    Toast.makeText(DetailActivity.this, "No trailer available. Sorry!",
+                            Toast.LENGTH_SHORT).show();
+                } else if (movie.getTrailerUrls().size() > 1) {
+                    // Dialog
+                    showTrailerList();
+                } else {
+                    String url = movie.getTrailerUrls().get(0);
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+                }
+            }
+        });
+    }
+
+    private void showTrailerList() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Select a trailer");
+
+        String[] trailerTitles = new String[trailerUrls.size()];
+        for (int i = 0; i < trailerTitles.length; i++) {
+            trailerTitles[i] = "Trailer " + (i + 1);
+        }
+        final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_list_item_1, trailerTitles);
+
+        builder.setAdapter(arrayAdapter, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(trailerUrls.get(which))));
             }
         });
 
-//        // Some palette stuff
-//        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), d);
-//        Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
-//            @Override
-//            public void onGenerated(Palette palette) {
-//                mutedColor = palette.getMutedColor(R.attr.colorPrimary);
-//                collapsingToolbar.setContentScrimColor(mutedColor);
-//            }
-//        });
+        builder.setNegativeButton(android.R.string.cancel, null);
+        builder.create().show();
     }
 
     private void fetchVideoData() {
-        progressBar.setVisibility(View.VISIBLE);
         String url = Constants.MOVIE_BASE_URL;
         url += "/" + movie.getId();
         url += "/videos";
@@ -143,26 +173,23 @@ public class DetailActivity extends AppCompatActivity {
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                progressBar.setVisibility(View.INVISIBLE);
+                                progressDialog.hide();
                             }
                         });
                         JSONObject movieObject = new JSONObject(jsonData);
                         JSONArray moviesArray = movieObject.getJSONArray("results");
-                        JSONObject movieTrailer = moviesArray.getJSONObject(0);
-                        String trailerURL = Constants.YT_BASE_URL + movieTrailer.getString("key");
-                        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(trailerURL)));
+                        ArrayList<String> urls = new ArrayList<>();
+                        for (int i = 0; i < moviesArray.length(); i++) {
+                            JSONObject movieTrailer = moviesArray.getJSONObject(i);
+                            String trailerURL = Constants.YT_BASE_URL + movieTrailer.getString("key");
+                            urls.add(trailerURL);
+                        }
+                        trailerUrls = urls;
+                        movie.setTrailerUrls(urls);
                     } else {
                         ErrorUtils.showGenericError(DetailActivity.this);
                     }
                 } catch (IOException | JSONException e) {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            progressBar.setVisibility(View.INVISIBLE);
-                            Toast.makeText(DetailActivity.this, "No trailer available. Sorry!",
-                                    Toast.LENGTH_SHORT).show();
-                        }
-                    });
                     Log.e(TAG, "Exception caught:", e);
                 }
             }
