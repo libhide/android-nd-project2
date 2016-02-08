@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.v7.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:card_view="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/card"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_gravity="center"
+    android:layout_margin="5dp"
+    card_view:cardCornerRadius="2dp"
+    card_view:contentPadding="10dp">
+
+    <LinearLayout
+        android:id="@+id/cardviewTemplate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/reviewContent"
+            style="@style/MovieDetailValue"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp"
+            tools:text="Kung Fu Panda 3 does not disappoint. It has great animation, great music, and a great story. We loved it. My son, who is 9, enjoyed the story and thought the movie was very funny. The panda theme was adorable as pandas are cute animals. Also, the scary guy wasn't that scary - and was more funny. Jack Black is hilarious and everyone in the theater was laughing. There were some sad moments and some happy moments but you leave the theater feeling uplifted. If you like action movies, you will like this because many things explode but there is no gore. The colors of the film are quite beautiful and lush. Go see it! You will enjoy it. Take your kids." />
+
+        <TextView
+            android:id="@+id/reviewAuthor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            tools:text="– WongKentir" />
+
+    </LinearLayout>
+
+</android.support.v7.widget.CardView>

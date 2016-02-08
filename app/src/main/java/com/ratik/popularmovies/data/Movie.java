@@ -24,6 +24,7 @@ public class Movie implements Parcelable {
     private String voteAverage;
     private String plot;
     private ArrayList<String> trailerUrls;
+    private ArrayList<MovieReview> movieReviews;
 
     public Movie() {
         // Empty Constructor
@@ -115,6 +116,14 @@ public class Movie implements Parcelable {
         this.trailerUrls = trailerUrls;
     }
 
+    public ArrayList<MovieReview> getMovieReviews() {
+        return movieReviews;
+    }
+
+    public void setMovieReviews(ArrayList<MovieReview> movieReviews) {
+        this.movieReviews = movieReviews;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -140,7 +149,7 @@ public class Movie implements Parcelable {
         backdrop = in.readString();
         voteAverage = in.readString();
         plot = in.readString();
-        trailerUrls = new ArrayList<String>();
+        trailerUrls = new ArrayList<>();
         in.readList(trailerUrls, null);
     }
 

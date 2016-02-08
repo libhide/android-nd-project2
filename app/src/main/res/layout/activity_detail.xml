@@ -54,6 +54,7 @@
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
+            android:id="@+id/detailContentContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
@@ -135,7 +136,17 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 tools:text="In the 1820s, a frontiersman, Hugh Glass, sets out on a path of vengeance against those who left him for dead after a bear mauling." />
+
+            <TextView
+                android:id="@+id/reviewsHeader"
+                style="@style/MovieDetailHeader"
+                android:layout_marginBottom="5dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="REVIEWS" />
         </LinearLayout>
+
     </android.support.v4.widget.NestedScrollView>
 
     <android.support.design.widget.FloatingActionButton
@@ -146,6 +157,7 @@
         android:clickable="true"
         android:src="@drawable/ic_star_outline"
         app:layout_anchor="@+id/scrollView"
+        app:layout_behavior="com.ratik.popularmovies.misc.ScrollAwareFABBehavior"
         app:layout_anchorGravity="bottom|right|end" />
 
 </android.support.design.widget.CoordinatorLayout>

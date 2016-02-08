@@ -9,7 +9,7 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.CollapsingToolbarLayout;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.ShareActionProvider;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
@@ -17,12 +17,14 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.ratik.popularmovies.Keys;
 import com.ratik.popularmovies.R;
 import com.ratik.popularmovies.data.Movie;
+import com.ratik.popularmovies.data.MovieReview;
 import com.ratik.popularmovies.helpers.Constants;
 import com.ratik.popularmovies.helpers.ErrorUtils;
 import com.squareup.picasso.Callback;
@@ -51,10 +53,10 @@ public class DetailActivity extends AppCompatActivity {
     // Data
     private Movie movie;
     private ArrayList<String> trailerUrls;
+    private ArrayList<MovieReview> reviews;
 
     private ProgressDialog progressDialog;
-
-    private ShareActionProvider shareActionProvider;
+    private LinearLayout container;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -63,13 +65,14 @@ public class DetailActivity extends AppCompatActivity {
 
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Please wait...");
-        progressDialog.show();
 
-        // Get data
+        // Get passed data
         Intent intent = getIntent();
         movie = intent.getParcelableExtra(MainActivity.MOVIE_DATA);
 
+        // Fetch meta data
         fetchVideoData();
+        fetchReviews();
 
         // Set the toolbar
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -89,6 +92,7 @@ public class DetailActivity extends AppCompatActivity {
         TextView releaseDateTextView = (TextView) findViewById(R.id.releaseDateTextView);
         TextView voteAverageTextView = (TextView) findViewById(R.id.voteAverageTextView);
         ImageView movieBackdrop = (ImageView) findViewById(R.id.movieImage);
+        container = (LinearLayout) findViewById(R.id.detailContentContainer);
 
         // Fill in data
         Picasso.with(this).load(movie.getBackdropUrl()).into(movieBackdrop, new Callback() {
@@ -127,6 +131,8 @@ public class DetailActivity extends AppCompatActivity {
                 }
             }
         });
+
+        // Make CardViews for reviews
     }
 
     private void showTrailerList() {
@@ -152,6 +158,7 @@ public class DetailActivity extends AppCompatActivity {
     }
 
     private void fetchVideoData() {
+        progressDialog.show();
         String url = Constants.MOVIE_BASE_URL;
         url += "/" + movie.getId();
         url += "/videos";
@@ -202,6 +209,93 @@ public class DetailActivity extends AppCompatActivity {
         });
     }
 
+    private void fetchReviews() {
+        progressDialog.show();
+        String url = Constants.MOVIE_BASE_URL;
+        url += "/" + movie.getId();
+        url += "/reviews";
+        url += "?api_key=" + Keys.API_KEY;
+
+        OkHttpClient client = new OkHttpClient();
+        Request videosRequest = new Request.Builder()
+                .url(url)
+                .build();
+
+        Call reviewsCall = client.newCall(videosRequest);
+        reviewsCall.enqueue(new okhttp3.Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                // Unimplemented
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+                    String jsonData = response.body().string();
+                    if (response.isSuccessful()) {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                progressDialog.hide();
+                            }
+                        });
+                        JSONObject movieObject = new JSONObject(jsonData);
+                        JSONArray reviewsArray = movieObject.getJSONArray("results");
+
+                        reviews = new ArrayList<>();
+                        for (int i = 0; i < reviewsArray.length(); i++) {
+                            JSONObject reviewObject = reviewsArray.getJSONObject(i);
+
+                            MovieReview rs = new MovieReview();
+                            rs.setAuthor(reviewObject.getString("author"));
+                            rs.setReview(reviewObject.getString("content"));
+
+                            reviews.add(rs);
+                        }
+                        movie.setMovieReviews(reviews);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (reviews.size() > 0) {
+                                    addReviewsToLayout(true);
+                                } else {
+                                    addReviewsToLayout(false);
+                                }
+                            }
+                        });
+                    } else {
+                        ErrorUtils.showGenericError(DetailActivity.this);
+                    }
+                } catch (IOException | JSONException e) {
+                    Log.e(TAG, "Exception caught:", e);
+                }
+            }
+        });
+    }
+
+    private void addReviewsToLayout(boolean reviewsPresent) {
+        if (reviewsPresent) {
+            for (MovieReview review : reviews) {
+                View view = getLayoutInflater().inflate(R.layout.cardview_template,
+                        container, false);
+
+                CardView cv = (CardView) view.findViewById(R.id.card);
+                TextView reviewTextView = (TextView) view.findViewById(R.id.reviewContent);
+                TextView authorTextView = (TextView) view.findViewById(R.id.reviewAuthor);
+                reviewTextView.setText(review.getReview());
+                authorTextView.setText("– " + review.getAuthor());
+
+                container.addView(cv);
+            }
+        } else {
+            View noReviewsView = getLayoutInflater().inflate(R.layout.no_reviews_textview,
+                    container, false);
+            container.addView(noReviewsView);
+        }
+
+    }
+
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_detail, menu);
@@ -217,16 +311,22 @@ public class DetailActivity extends AppCompatActivity {
             case R.id.action_share:
                 if (trailerUrls != null) {
                     if (trailerUrls.size() != 0) {
-                        String url = movie.getTrailerUrls().get(0);
-                        Intent shareIntent = new Intent(Intent.ACTION_SEND);
-                        String message = String.format("Check this %s trailer out! It's awesome!\n\n%s", movie.getTitle(), url);
-                        shareIntent.putExtra(Intent.EXTRA_TEXT, message);
-                        shareIntent.setType("text/plain");
-                        startActivity(Intent.createChooser(shareIntent, getString(com.ratik.popularmovies.R.string.share)));
+                        showShareDialog();
                     }
                 }
                 break;
         }
         return true;
+    }
+
+    private void showShareDialog() {
+        String url = movie.getTrailerUrls().get(0);
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        String message = String.format("Check this %s trailer out! " +
+                "It's awesome!\n\n%s", movie.getTitle(), url);
+        shareIntent.putExtra(Intent.EXTRA_TEXT, message);
+        shareIntent.setType("text/plain");
+        startActivity(Intent.createChooser(shareIntent,
+                getString(com.ratik.popularmovies.R.string.share)));
     }
 }
