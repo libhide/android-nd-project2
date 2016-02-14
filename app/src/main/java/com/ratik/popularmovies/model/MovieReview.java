@@ -1,4 +1,4 @@
-package com.ratik.popularmovies.data;
+package com.ratik.popularmovies.model;
 
 import android.os.Parcel;
 import android.os.Parcelable;

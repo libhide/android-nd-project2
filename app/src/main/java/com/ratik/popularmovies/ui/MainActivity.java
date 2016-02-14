@@ -19,7 +19,7 @@ import android.widget.Toast;
 import com.ratik.popularmovies.Keys;
 import com.ratik.popularmovies.R;
 import com.ratik.popularmovies.adapters.MovieAdapter;
-import com.ratik.popularmovies.data.Movie;
+import com.ratik.popularmovies.model.Movie;
 import com.ratik.popularmovies.helpers.Constants;
 import com.ratik.popularmovies.helpers.ErrorUtils;
 import com.ratik.popularmovies.helpers.NetworkUtils;
@@ -196,7 +196,7 @@ public class MainActivity extends AppCompatActivity {
             movie.setReleaseDate(movieObject.getString(Constants.MOVIE_RELEASE_DATE));
             movie.setPoster(movieObject.getString(Constants.MOVIE_POSTER));
             movie.setBackdrop(movieObject.getString(Constants.MOVIE_BACKDROP));
-            movie.setVoteAverage(movieObject.getString(Constants.MOVIE_VOTE_AVERAGE));
+            movie.setVotesAverage(movieObject.getString(Constants.MOVIE_VOTE_AVERAGE));
             movie.setPlot(movieObject.getString(Constants.MOVIE_PLOT));
 
             movies.add(movie);

@@ -8,7 +8,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 
 import com.ratik.popularmovies.R;
-import com.ratik.popularmovies.data.Movie;
+import com.ratik.popularmovies.model.Movie;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;

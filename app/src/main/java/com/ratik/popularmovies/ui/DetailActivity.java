@@ -23,8 +23,8 @@ import android.widget.Toast;
 
 import com.ratik.popularmovies.Keys;
 import com.ratik.popularmovies.R;
-import com.ratik.popularmovies.data.Movie;
-import com.ratik.popularmovies.data.MovieReview;
+import com.ratik.popularmovies.model.Movie;
+import com.ratik.popularmovies.model.MovieReview;
 import com.ratik.popularmovies.helpers.Constants;
 import com.ratik.popularmovies.helpers.ErrorUtils;
 import com.squareup.picasso.Callback;
@@ -112,7 +112,7 @@ public class DetailActivity extends AppCompatActivity {
         overviewTextView.setText(movie.getPlot());
         releaseDateTextView.setText(movie.getReleaseDate());
         voteAverageTextView.setText(String.format(getString(R.string.vote_average_placeholder),
-                movie.getVoteAverage()));
+                movie.getVotesAverage()));
 
         // Click listeners
         playImage.setOnClickListener(new View.OnClickListener() {

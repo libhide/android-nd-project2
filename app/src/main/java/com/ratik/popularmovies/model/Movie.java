@@ -1,4 +1,4 @@
-package com.ratik.popularmovies.data;
+package com.ratik.popularmovies.model;
 
 import android.annotation.SuppressLint;
 import android.os.Parcel;
@@ -21,7 +21,7 @@ public class Movie implements Parcelable {
     private String releaseDate;
     private String poster;
     private String backdrop;
-    private String voteAverage;
+    private String votesAverage;
     private String plot;
     private ArrayList<String> trailerUrls;
     private ArrayList<MovieReview> movieReviews;
@@ -92,12 +92,12 @@ public class Movie implements Parcelable {
         this.backdrop = backdrop;
     }
 
-    public String getVoteAverage() {
-        return voteAverage;
+    public String getVotesAverage() {
+        return votesAverage;
     }
 
-    public void setVoteAverage(String voteAverage) {
-        this.voteAverage = voteAverage;
+    public void setVotesAverage(String votesAverage) {
+        this.votesAverage = votesAverage;
     }
 
     public String getPlot() {
@@ -136,7 +136,7 @@ public class Movie implements Parcelable {
         dest.writeString(releaseDate);
         dest.writeString(poster);
         dest.writeString(backdrop);
-        dest.writeString(voteAverage);
+        dest.writeString(votesAverage);
         dest.writeString(plot);
         dest.writeList(trailerUrls);
     }
@@ -147,7 +147,7 @@ public class Movie implements Parcelable {
         releaseDate = in.readString();
         poster = in.readString();
         backdrop = in.readString();
-        voteAverage = in.readString();
+        votesAverage = in.readString();
         plot = in.readString();
         trailerUrls = new ArrayList<>();
         in.readList(trailerUrls, null);
