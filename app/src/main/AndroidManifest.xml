@@ -22,6 +22,11 @@
             android:name=".ui.DetailActivity"
             android:parentActivityName=".ui.MainActivity"
             android:theme="@style/DetailTheme" />
+
+        <provider
+            android:name=".provider.MovieProvider"
+            android:authorities="com.ratik.popularmovies.provider"
+            android:exported="false" />
     </application>
 
 </manifest>

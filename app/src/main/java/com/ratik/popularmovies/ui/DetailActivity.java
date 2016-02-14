@@ -2,12 +2,16 @@ package com.ratik.popularmovies.ui;
 
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.CollapsingToolbarLayout;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.Toolbar;
@@ -23,10 +27,11 @@ import android.widget.Toast;
 
 import com.ratik.popularmovies.Keys;
 import com.ratik.popularmovies.R;
-import com.ratik.popularmovies.model.Movie;
-import com.ratik.popularmovies.model.MovieReview;
+import com.ratik.popularmovies.data.MovieContract;
 import com.ratik.popularmovies.helpers.Constants;
 import com.ratik.popularmovies.helpers.ErrorUtils;
+import com.ratik.popularmovies.model.Movie;
+import com.ratik.popularmovies.model.MovieReview;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
@@ -34,6 +39,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -55,13 +61,22 @@ public class DetailActivity extends AppCompatActivity {
     private ArrayList<String> trailerUrls;
     private ArrayList<MovieReview> reviews;
 
+    private FloatingActionButton fab;
     private ProgressDialog progressDialog;
     private LinearLayout container;
+    private ImageView posterImageView;
+    private ImageView movieBackdrop;
+
+    private ContentResolver contentResolver;
+
+    private boolean isFave;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail);
+
+        contentResolver = getContentResolver();
 
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Please wait...");
@@ -85,13 +100,14 @@ public class DetailActivity extends AppCompatActivity {
         collapsingToolbar.setTitle(movie.getTitle());
 
         // Set up views
+        fab = (FloatingActionButton) findViewById(R.id.fab);
         final ImageView playImage = (ImageView) findViewById(R.id.playImage);
         TextView titleTextView = (TextView) findViewById(R.id.titleTextView);
-        ImageView posterImageView = (ImageView) findViewById(R.id.posterImageView);
+        posterImageView = (ImageView) findViewById(R.id.posterImageView);
         TextView overviewTextView = (TextView) findViewById(R.id.overviewTextView);
         TextView releaseDateTextView = (TextView) findViewById(R.id.releaseDateTextView);
         TextView voteAverageTextView = (TextView) findViewById(R.id.voteAverageTextView);
-        ImageView movieBackdrop = (ImageView) findViewById(R.id.movieImage);
+        movieBackdrop = (ImageView) findViewById(R.id.movieImage);
         container = (LinearLayout) findViewById(R.id.detailContentContainer);
 
         // Fill in data
@@ -131,8 +147,60 @@ public class DetailActivity extends AppCompatActivity {
                 }
             }
         });
+    }
 
-        // Make CardViews for reviews
+    @Override
+    protected void onResume() {
+        super.onResume();
+        isFave = false;
+
+        initFAB();
+    }
+
+    private void initFAB() {
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (isFave) {
+                    isFave = false;
+                    fab.setImageResource(R.drawable.ic_star_outline);
+                    // Remove record from faves
+                    contentResolver.delete(MovieContract.BASE_CONTENT_URI,
+                            MovieContract.MovieEntry._ID + getString(R.string.selection),
+                            new String[]{ movie.getId() }
+                    );
+                    Toast.makeText(DetailActivity.this, "Unfaved", Toast.LENGTH_LONG).show();
+                } else {
+                    isFave = true;
+                    fab.setImageResource(R.drawable.ic_star);
+
+                    // Getting images
+                    posterImageView.setDrawingCacheEnabled(true);
+                    movieBackdrop.setDrawingCacheEnabled(true);
+                    Bitmap posterBitmap = posterImageView.getDrawingCache();
+                    Bitmap backdropBitmap = movieBackdrop.getDrawingCache();
+                    ByteArrayOutputStream stream1 = new ByteArrayOutputStream();
+                    ByteArrayOutputStream stream2 = new ByteArrayOutputStream();
+                    posterBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream1);
+                    byte[] poster = stream1.toByteArray();
+                    backdropBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream2);
+                    byte[] backdrop = stream2.toByteArray();
+
+                    // Add record to faves
+                    ContentValues values = new ContentValues();
+                    values.put(MovieContract.MovieEntry.COLUMN_MOVIE_ID, movie.getId());
+                    values.put(MovieContract.MovieEntry.COLUMN_TITLE, movie.getTitle());
+                    values.put(MovieContract.MovieEntry.COLUMN_PLOT, movie.getTitle());
+                    values.put(MovieContract.MovieEntry.COLUMN_VOTES_AVG, movie.getVotesAverage());
+                    values.put(MovieContract.MovieEntry.COLUMN_RELEASE_DATE, movie.getReleaseDate());
+                    values.put(MovieContract.MovieEntry.COLUMN_POSTER, poster);
+                    values.put(MovieContract.MovieEntry.COLUMN_BACKDROP, backdrop);
+
+                    contentResolver.insert(MovieContract.BASE_CONTENT_URI, values);
+                    Toast.makeText(DetailActivity.this, "Faved", Toast.LENGTH_LONG).show();
+                }
+            }
+        });
     }
 
     private void showTrailerList() {
@@ -292,7 +360,6 @@ public class DetailActivity extends AppCompatActivity {
                     container, false);
             container.addView(noReviewsView);
         }
-
     }
 
 

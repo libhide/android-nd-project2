@@ -3,6 +3,7 @@ package com.ratik.popularmovies.data;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+
 import com.ratik.popularmovies.data.MovieContract.MovieEntry;
 
 /**
@@ -20,13 +21,14 @@ public class MovieDbHelper extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         final String SQL_CREATE_WEATHER_TABLE = "CREATE TABLE " + MovieEntry.TABLE_NAME + " (" +
-            MovieEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+            MovieEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
 
+            MovieEntry.COLUMN_MOVIE_ID + " TEXT NOT NULL, " +
             MovieEntry.COLUMN_TITLE + " TEXT NOT NULL, " +
             MovieEntry.COLUMN_RELEASE_DATE + " TEXT NOT NULL, " +
             MovieEntry.COLUMN_VOTES_AVG + " TEXT NOT NULL, " +
             MovieEntry.COLUMN_POSTER + " BLOB NOT NULL, " +
-            MovieEntry.COLUMN_BACKDROP + "BLOB NOT NULL, " +
+            MovieEntry.COLUMN_BACKDROP + " BLOB NOT NULL, " +
             MovieEntry.COLUMN_PLOT + " TEXT NOT NULL);";
 
         db.execSQL(SQL_CREATE_WEATHER_TABLE);
