@@ -6,7 +6,7 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.Bitmap;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -28,6 +28,7 @@ import android.widget.Toast;
 import com.ratik.popularmovies.Keys;
 import com.ratik.popularmovies.R;
 import com.ratik.popularmovies.data.MovieContract;
+import com.ratik.popularmovies.helpers.BitmapUtils;
 import com.ratik.popularmovies.helpers.Constants;
 import com.ratik.popularmovies.helpers.ErrorUtils;
 import com.ratik.popularmovies.model.Movie;
@@ -39,7 +40,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -66,10 +66,13 @@ public class DetailActivity extends AppCompatActivity {
     private LinearLayout container;
     private ImageView posterImageView;
     private ImageView movieBackdrop;
+    private ImageView playImage;
 
     private ContentResolver contentResolver;
 
     private boolean isFave;
+    private boolean inDb;
+    private boolean isNetworkAvailable;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -78,16 +81,41 @@ public class DetailActivity extends AppCompatActivity {
 
         contentResolver = getContentResolver();
 
+        // Set up views
+        fab = (FloatingActionButton) findViewById(R.id.fab);
+        playImage = (ImageView) findViewById(R.id.playImage);
+        TextView titleTextView = (TextView) findViewById(R.id.titleTextView);
+        TextView overviewTextView = (TextView) findViewById(R.id.overviewTextView);
+        TextView releaseDateTextView = (TextView) findViewById(R.id.releaseDateTextView);
+        TextView voteAverageTextView = (TextView) findViewById(R.id.voteAverageTextView);
+        TextView reviewsHeaderTextView = (TextView) findViewById(R.id.reviewsHeader);
+
+        container = (LinearLayout) findViewById(R.id.detailContentContainer);
+
+        movieBackdrop = (ImageView) findViewById(R.id.movieImage);
+        posterImageView = (ImageView) findViewById(R.id.posterImageView);
+        posterImageView.setDrawingCacheEnabled(true);
+        movieBackdrop.setDrawingCacheEnabled(true);
+
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Please wait...");
 
         // Get passed data
         Intent intent = getIntent();
         movie = intent.getParcelableExtra(MainActivity.MOVIE_DATA);
+        isFave = intent.getBooleanExtra(MainActivity.IS_FAVE, false);
+        isNetworkAvailable = intent.getBooleanExtra(MainActivity.NETWORK_STATE, true);
 
         // Fetch meta data
-        fetchVideoData();
-        fetchReviews();
+        if (isNetworkAvailable && !isFave) {
+            Log.d(TAG, "Fetching metadata");
+            fetchVideoData();
+            fetchReviews();
+        } else {
+            playImage.setVisibility(View.GONE);
+            reviewsHeaderTextView.setVisibility(View.GONE);
+            progressDialog.hide();
+        }
 
         // Set the toolbar
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -99,106 +127,91 @@ public class DetailActivity extends AppCompatActivity {
                 findViewById(R.id.collapsingToolbar);
         collapsingToolbar.setTitle(movie.getTitle());
 
-        // Set up views
-        fab = (FloatingActionButton) findViewById(R.id.fab);
-        final ImageView playImage = (ImageView) findViewById(R.id.playImage);
-        TextView titleTextView = (TextView) findViewById(R.id.titleTextView);
-        posterImageView = (ImageView) findViewById(R.id.posterImageView);
-        TextView overviewTextView = (TextView) findViewById(R.id.overviewTextView);
-        TextView releaseDateTextView = (TextView) findViewById(R.id.releaseDateTextView);
-        TextView voteAverageTextView = (TextView) findViewById(R.id.voteAverageTextView);
-        movieBackdrop = (ImageView) findViewById(R.id.movieImage);
-        container = (LinearLayout) findViewById(R.id.detailContentContainer);
-
-        // Fill in data
-        Picasso.with(this).load(movie.getBackdropUrl()).into(movieBackdrop, new Callback() {
-            @Override
-            public void onSuccess() {
-                playImage.setVisibility(View.VISIBLE);
-            }
-
-            @Override
-            public void onError() {
-
-            }
-        });
-
-        titleTextView.setText(movie.getTitle());
-        Picasso.with(this).load(movie.getPosterUrl()).into(posterImageView);
-        overviewTextView.setText(movie.getPlot());
-        releaseDateTextView.setText(movie.getReleaseDate());
-        voteAverageTextView.setText(String.format(getString(R.string.vote_average_placeholder),
-                movie.getVotesAverage()));
-
-        // Click listeners
-        playImage.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                int numberOfTrailer = trailerUrls.size();
-                if (numberOfTrailer == 0) {
-                    Toast.makeText(DetailActivity.this, "No trailer available. Sorry!",
-                            Toast.LENGTH_SHORT).show();
-                } else if (movie.getTrailerUrls().size() > 1) {
-                    // Dialog
-                    showTrailerList();
-                } else {
-                    String url = movie.getTrailerUrls().get(0);
-                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+        if (!isFave) {
+            // Fill in data
+            Picasso.with(this).load(movie.getBackdropUrl()).into(movieBackdrop, new Callback() {
+                @Override
+                public void onSuccess() {
+                    playImage.setVisibility(View.VISIBLE);
                 }
-            }
-        });
+
+                @Override
+                public void onError() {
+
+                }
+            });
+
+            titleTextView.setText(movie.getTitle());
+            Picasso.with(this).load(movie.getPosterUrl()).into(posterImageView);
+            overviewTextView.setText(movie.getPlot());
+            releaseDateTextView.setText(movie.getFormattedReleaseDate());
+            voteAverageTextView.setText(String.format(getString(R.string.vote_average_placeholder),
+                    movie.getVotesAverage()));
+
+            // Click listeners
+            playImage.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    int numberOfTrailer = trailerUrls.size();
+                    if (numberOfTrailer == 0) {
+                        Toast.makeText(DetailActivity.this, "No trailer available. Sorry!",
+                                Toast.LENGTH_SHORT).show();
+                    } else if (movie.getTrailerUrls().size() > 1) {
+                        // Dialog
+                        showTrailerList();
+                    } else {
+                        String url = movie.getTrailerUrls().get(0);
+                        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+                    }
+                }
+            });
+        } else {
+            titleTextView.setText(movie.getTitle());
+            Picasso.with(this).load(movie.getPosterUrl()).into(posterImageView);
+            overviewTextView.setText(movie.getPlot());
+            releaseDateTextView.setText(movie.getFormattedReleaseDate());
+            voteAverageTextView.setText(String.format(getString(R.string.vote_average_placeholder),
+                    movie.getVotesAverage()));
+
+            posterImageView.setImageBitmap(BitmapUtils.getBitmapFromBytes(movie.getPosterByteArray()));
+            movieBackdrop.setImageBitmap(BitmapUtils.getBitmapFromBytes(movie.getBackdropByteArray()));
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        isFave = false;
+        inDb = checkIifMovieIsInDatabase();
 
-        initFAB();
-    }
-
-    private void initFAB() {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (isFave) {
-                    isFave = false;
-                    fab.setImageResource(R.drawable.ic_star_outline);
+                if (inDb) {
                     // Remove record from faves
-                    contentResolver.delete(MovieContract.BASE_CONTENT_URI,
-                            MovieContract.MovieEntry._ID + getString(R.string.selection),
+                    contentResolver.delete(
+                            MovieContract.BASE_CONTENT_URI,
+                            MovieContract.MovieEntry.COLUMN_MOVIE_ID + getString(R.string.selection),
                             new String[]{ movie.getId() }
                     );
-                    Toast.makeText(DetailActivity.this, "Unfaved", Toast.LENGTH_LONG).show();
+                    Toast.makeText(DetailActivity.this, "Removed!", Toast.LENGTH_LONG).show();
                 } else {
-                    isFave = true;
-                    fab.setImageResource(R.drawable.ic_star);
-
-                    // Getting images
-                    posterImageView.setDrawingCacheEnabled(true);
-                    movieBackdrop.setDrawingCacheEnabled(true);
-                    Bitmap posterBitmap = posterImageView.getDrawingCache();
-                    Bitmap backdropBitmap = movieBackdrop.getDrawingCache();
-                    ByteArrayOutputStream stream1 = new ByteArrayOutputStream();
-                    ByteArrayOutputStream stream2 = new ByteArrayOutputStream();
-                    posterBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream1);
-                    byte[] poster = stream1.toByteArray();
-                    backdropBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream2);
-                    byte[] backdrop = stream2.toByteArray();
-
                     // Add record to faves
                     ContentValues values = new ContentValues();
                     values.put(MovieContract.MovieEntry.COLUMN_MOVIE_ID, movie.getId());
                     values.put(MovieContract.MovieEntry.COLUMN_TITLE, movie.getTitle());
-                    values.put(MovieContract.MovieEntry.COLUMN_PLOT, movie.getTitle());
+                    values.put(MovieContract.MovieEntry.COLUMN_PLOT, movie.getPlot());
                     values.put(MovieContract.MovieEntry.COLUMN_VOTES_AVG, movie.getVotesAverage());
                     values.put(MovieContract.MovieEntry.COLUMN_RELEASE_DATE, movie.getReleaseDate());
-                    values.put(MovieContract.MovieEntry.COLUMN_POSTER, poster);
-                    values.put(MovieContract.MovieEntry.COLUMN_BACKDROP, backdrop);
+                    values.put(MovieContract.MovieEntry.COLUMN_POSTER, BitmapUtils
+                            .getBitmapInBytes(posterImageView.getDrawingCache()));
+                    values.put(MovieContract.MovieEntry.COLUMN_BACKDROP, BitmapUtils
+                            .getBitmapInBytes(movieBackdrop.getDrawingCache()));
 
                     contentResolver.insert(MovieContract.BASE_CONTENT_URI, values);
                     Toast.makeText(DetailActivity.this, "Faved", Toast.LENGTH_LONG).show();
                 }
+                inDb = checkIifMovieIsInDatabase();
+                Log.d(TAG, "In db: " + inDb);
             }
         });
     }
@@ -362,10 +375,31 @@ public class DetailActivity extends AppCompatActivity {
         }
     }
 
+    private boolean checkIifMovieIsInDatabase() {
+        Cursor c = contentResolver.query(
+                MovieContract.BASE_CONTENT_URI,
+                new String[]{MovieContract.MovieEntry.COLUMN_MOVIE_ID},
+                MovieContract.MovieEntry.COLUMN_MOVIE_ID + getString(R.string.selection),
+                new String[]{ movie.getId() },
+                null
+        );
+        if (c != null && c.getCount() > 0) {
+            c.close();
+            fab.setImageResource(R.drawable.ic_star);
+            return true;
+        } else {
+            fab.setImageResource(R.drawable.ic_star_outline);
+            return false;
+        }
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_detail, menu);
+        if (!isNetworkAvailable || isFave) {
+            MenuItem item = menu.findItem(R.id.action_share);
+            item.setVisible(false);
+        }
         return true;
     }
 

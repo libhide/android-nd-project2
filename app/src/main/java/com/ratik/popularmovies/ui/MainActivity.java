@@ -2,6 +2,8 @@ package com.ratik.popularmovies.ui;
 
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.database.Cursor;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.support.v7.app.AppCompatActivity;
@@ -19,12 +21,14 @@ import android.widget.Toast;
 import com.ratik.popularmovies.Keys;
 import com.ratik.popularmovies.R;
 import com.ratik.popularmovies.adapters.MovieAdapter;
-import com.ratik.popularmovies.model.Movie;
+import com.ratik.popularmovies.data.MovieContract;
+import com.ratik.popularmovies.helpers.BitmapUtils;
 import com.ratik.popularmovies.helpers.Constants;
 import com.ratik.popularmovies.helpers.ErrorUtils;
 import com.ratik.popularmovies.helpers.NetworkUtils;
 import com.ratik.popularmovies.helpers.PrefsUtils;
 import com.ratik.popularmovies.listeners.RecyclerItemClickListener;
+import com.ratik.popularmovies.model.Movie;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -45,6 +49,9 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
     public static final String MOVIE_DATA = "movie_data";
     public static final String MOVIES_DATA = "movies_data";
+    public static final String IS_FAVE = "is_fave";
+    public static final String NETWORK_STATE = "network_state";
+
     private static final String RV_SCROLL_POS = "scroll_position";
 
     public static final String SORT_BY_POPULARITY = "popularity";
@@ -63,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView.LayoutManager layoutManager;
     private Parcelable rvState;
     private String currentSortType = SORT_BY_POPULARITY;
+    private boolean isNetworkPresent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,7 +92,8 @@ public class MainActivity extends AppCompatActivity {
             progressBar.setVisibility(View.INVISIBLE);
         } else {
             currentSortType = PrefsUtils.getSortType(this);
-            if (NetworkUtils.isNetworkAvailable(this)) {
+            isNetworkPresent = NetworkUtils.isNetworkAvailable(this);
+            if (isNetworkPresent) {
                 // YES, do the network call!
                 if (currentSortType.equals(SORT_BY_POPULARITY)) {
                     fetchMovies(Constants.ORDER_BY_POPULARITY);
@@ -99,6 +108,11 @@ public class MainActivity extends AppCompatActivity {
         }
 
         setupRecyclerView();
+
+        // Get fave movies if network isn't present
+        if (!isNetworkPresent) {
+            fetchFaves();
+        }
     }
 
     private void setupRecyclerView() {
@@ -117,13 +131,22 @@ public class MainActivity extends AppCompatActivity {
                         new RecyclerItemClickListener.OnItemClickListener() {
                             @Override
                             public void onItemClick(View view, int position) {
+                                Movie movie = movies.get(position);
                                 Intent intent = new Intent(MainActivity.this, DetailActivity.class);
-                                if (!movies.get(position).getPoster().isEmpty()) {
-                                    intent.putExtra(MOVIE_DATA, movies.get(position));
-                                    startActivity(intent);
+                                intent.putExtra(NETWORK_STATE, isNetworkPresent);
+                                if (currentSortType != SORT_BY_FAVE) {
+                                    if (!movies.get(position).getPoster().isEmpty()) {
+                                        intent.putExtra(MOVIE_DATA, movie);
+                                        intent.putExtra(IS_FAVE, false);
+                                        startActivity(intent);
+                                    } else {
+                                        Toast.makeText(MainActivity.this, R.string.corrupt_movie_data_error,
+                                                Toast.LENGTH_LONG).show();
+                                    }
                                 } else {
-                                    Toast.makeText(MainActivity.this, R.string.corrupt_movie_data_error,
-                                            Toast.LENGTH_LONG).show();
+                                    intent.putExtra(MOVIE_DATA, movie);
+                                    intent.putExtra(IS_FAVE, true);
+                                    startActivity(intent);
                                 }
 
                             }
@@ -136,6 +159,9 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         if (rvState != null) {
             layoutManager.onRestoreInstanceState(rvState);
+        }
+        if (currentSortType == SORT_BY_FAVE) {
+            fetchFaves();
         }
     }
 
@@ -199,6 +225,11 @@ public class MainActivity extends AppCompatActivity {
             movie.setVotesAverage(movieObject.getString(Constants.MOVIE_VOTE_AVERAGE));
             movie.setPlot(movieObject.getString(Constants.MOVIE_PLOT));
 
+            movie.setPosterByteArray(BitmapUtils.getBitmapInBytes(BitmapFactory.decodeResource(
+                    getResources(), R.drawable.dummy_backdrop)));
+            movie.setBackdropByteArray(BitmapUtils.getBitmapInBytes(BitmapFactory.decodeResource(
+                    getResources(), R.drawable.error_poster)));
+
             movies.add(movie);
         }
     }
@@ -226,22 +257,76 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        isNetworkPresent = NetworkUtils.isNetworkAvailable(this);
         switch (item.getItemId()) {
             case R.id.action_popular:
-                currentSortType = SORT_BY_POPULARITY;
-                // Save sort type
-                PrefsUtils.setSortType(this, currentSortType);
-                // Fetch movies
-                fetchMovies(Constants.ORDER_BY_POPULARITY);
+                if (isNetworkPresent) {
+                    currentSortType = SORT_BY_POPULARITY;
+                    // Save sort type
+                    PrefsUtils.setSortType(this, currentSortType);
+                    // Fetch movies
+                    fetchMovies(Constants.ORDER_BY_POPULARITY);
+                } else {
+                    Toast.makeText(MainActivity.this, "Network not available, sorry!", Toast.LENGTH_LONG).show();
+                }
                 break;
             case R.id.action_top_rated:
-                currentSortType = SORT_BY_RATING;
+                if (isNetworkPresent) {
+                    currentSortType = SORT_BY_RATING;
+                    // Save sort type
+                    PrefsUtils.setSortType(this, currentSortType);
+                    // Fetch movies
+                    fetchMovies(Constants.ORDER_BY_VOTES);
+                } else {
+                    Toast.makeText(MainActivity.this, "Network not available, sorry!", Toast.LENGTH_LONG).show();
+                }
+                break;
+            case R.id.action_fave:
+                currentSortType = SORT_BY_FAVE;
                 // Save sort type
                 PrefsUtils.setSortType(this, currentSortType);
                 // Fetch movies
-                fetchMovies(Constants.ORDER_BY_VOTES);
+                fetchFaves();
                 break;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void fetchFaves() {
+        currentSortType = SORT_BY_FAVE;
+        Cursor cursor = getContentResolver().query(MovieContract.BASE_CONTENT_URI, null,
+                null, null, null);
+        if (cursor != null && cursor.getCount() > 0) {
+            movies.clear();
+            cursor.moveToFirst();
+            do {
+                Movie movie = new Movie();
+
+                movie.setId(cursor.getString(cursor.getColumnIndex(
+                        MovieContract.MovieEntry.COLUMN_MOVIE_ID)));
+                movie.setTitle(cursor.getString(cursor.getColumnIndex(
+                        MovieContract.MovieEntry.COLUMN_TITLE)));
+                movie.setReleaseDate(cursor.getString(cursor.getColumnIndex(
+                        MovieContract.MovieEntry.COLUMN_RELEASE_DATE)));
+                movie.setVotesAverage(cursor.getString(cursor.getColumnIndex(
+                        MovieContract.MovieEntry.COLUMN_VOTES_AVG)));
+
+                movie.setTrailerUrls(null);
+                movie.setMovieReviews(null);
+                movie.setPoster("");
+                movie.setPosterByteArray(cursor.getBlob(cursor.getColumnIndex(
+                        MovieContract.MovieEntry.COLUMN_POSTER)));
+                movie.setBackdrop("");
+                movie.setBackdropByteArray(cursor.getBlob(cursor.getColumnIndex(
+                        MovieContract.MovieEntry.COLUMN_BACKDROP)));
+
+                movies.add(movie);
+            } while (cursor.moveToNext());
+            adapter.notifyDataSetChanged();
+            cursor.close();
+        } else {
+            Toast.makeText(this, "There are no favorites!", Toast.LENGTH_LONG).show();
+        }
+        progressBar.setVisibility(View.INVISIBLE);
     }
 }

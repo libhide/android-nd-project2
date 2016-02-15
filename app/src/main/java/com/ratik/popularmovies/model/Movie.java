@@ -23,6 +23,8 @@ public class Movie implements Parcelable {
     private String backdrop;
     private String votesAverage;
     private String plot;
+    byte[] posterByteArray;
+    byte[] backdropByteArray;
     private ArrayList<String> trailerUrls;
     private ArrayList<MovieReview> movieReviews;
 
@@ -46,8 +48,12 @@ public class Movie implements Parcelable {
         this.title = title;
     }
 
-    @SuppressLint("SimpleDateFormat")
     public String getReleaseDate() {
+        return releaseDate;
+    }
+
+    @SuppressLint("SimpleDateFormat")
+    public String getFormattedReleaseDate() {
         SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd");
         Date date = null;
         try {
@@ -124,6 +130,22 @@ public class Movie implements Parcelable {
         this.movieReviews = movieReviews;
     }
 
+    public byte[] getPosterByteArray() {
+        return posterByteArray;
+    }
+
+    public void setPosterByteArray(byte[] posterByteArray) {
+        this.posterByteArray = posterByteArray;
+    }
+
+    public byte[] getBackdropByteArray() {
+        return backdropByteArray;
+    }
+
+    public void setBackdropByteArray(byte[] backdropByteArray) {
+        this.backdropByteArray = backdropByteArray;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -139,6 +161,12 @@ public class Movie implements Parcelable {
         dest.writeString(votesAverage);
         dest.writeString(plot);
         dest.writeList(trailerUrls);
+
+        dest.writeInt(posterByteArray.length);
+        dest.writeByteArray(posterByteArray);
+
+        dest.writeInt(backdropByteArray.length);
+        dest.writeByteArray(backdropByteArray);
     }
 
     private Movie(Parcel in) {
@@ -149,8 +177,15 @@ public class Movie implements Parcelable {
         backdrop = in.readString();
         votesAverage = in.readString();
         plot = in.readString();
+
         trailerUrls = new ArrayList<>();
         in.readList(trailerUrls, null);
+
+        posterByteArray = new byte[in.readInt()];
+        in.readByteArray(posterByteArray);
+
+        backdropByteArray = new byte[in.readInt()];
+        in.readByteArray(backdropByteArray);
     }
 
     public static final Creator<Movie> CREATOR = new Creator<Movie>() {

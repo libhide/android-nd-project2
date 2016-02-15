@@ -2,7 +2,7 @@
     <string name="app_name">Popular Movies</string>
     <string name="generic_error_title">Oops, sorry!</string>
     <string name="generic_error_message">There was an error. Try again!</string>
-    <string name="network_unavailable_message">Network is unavailable.</string>
+    <string name="network_unavailable_message">Network is unavailable. Trying to load favorites. </string>
     <string name="release_date_header_text">RELEASE DATE</string>
     <string name="vote_average_header_text">VOTE AVERAGE</string>
     <string name="vote_average_placeholder">%s / 10</string>
@@ -15,4 +15,5 @@
     <string name="corrupt_movie_data_error">The data for the movie is incomplete. Sorry!</string>
     <string name="share">Share</string>
     <string name="selection">=\?</string>
+    <string name="type_fave">Favorite Movies</string>
 </resources>

@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 
 import com.ratik.popularmovies.R;
+import com.ratik.popularmovies.helpers.BitmapUtils;
 import com.ratik.popularmovies.model.Movie;
 import com.squareup.picasso.Picasso;
 
@@ -17,6 +18,7 @@ import java.util.ArrayList;
  * Created by Ratik on 07/02/16.
  */
 public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder> {
+    private static final String TAG = MovieAdapter.class.getSimpleName();
     private Context context;
     private ArrayList<Movie> movies;
 
@@ -55,16 +57,19 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder> 
         // - get element from your dataset at this position
         // - replace the contents of the view with that element
 
-        String posterPath = movies.get(position).getPoster();
+        Movie movie = movies.get(position);
+        String posterPath = movie.getPoster();
         if (!posterPath.isEmpty()) {
             Picasso.with(context).load(movies.get(position).getPosterUrl())
                     .into(holder.posterImageView);
             holder.posterImageView.setContentDescription(movies.get(position).getTitle() +
                     "poster");
+        } else if (posterPath.isEmpty() && movie.getPosterByteArray() != null){
+            holder.posterImageView.setImageBitmap(BitmapUtils
+                    .getBitmapFromBytes(movie.getPosterByteArray()));
         } else {
             holder.posterImageView.setImageResource(R.drawable.error_poster);
         }
-
     }
 
     // Return the size of your dataset (invoked by the layout manager)
