@@ -160,7 +160,8 @@ public class MainActivity extends AppCompatActivity {
         if (rvState != null) {
             layoutManager.onRestoreInstanceState(rvState);
         }
-        if (currentSortType == SORT_BY_FAVE) {
+        if (currentSortType.equals(SORT_BY_FAVE)) {
+            movies.clear();
             fetchFaves();
         }
     }
@@ -310,6 +311,8 @@ public class MainActivity extends AppCompatActivity {
                         MovieContract.MovieEntry.COLUMN_RELEASE_DATE)));
                 movie.setVotesAverage(cursor.getString(cursor.getColumnIndex(
                         MovieContract.MovieEntry.COLUMN_VOTES_AVG)));
+                movie.setPlot(cursor.getString(cursor.getColumnIndex(
+                        MovieContract.MovieEntry.COLUMN_PLOT)));
 
                 movie.setTrailerUrls(null);
                 movie.setMovieReviews(null);
