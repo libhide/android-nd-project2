@@ -108,7 +108,6 @@ public class DetailActivity extends AppCompatActivity {
 
         // Fetch meta data
         if (isNetworkAvailable && !isFave) {
-            Log.d(TAG, "Fetching metadata");
             fetchVideoData();
             fetchReviews();
         } else {
@@ -193,7 +192,7 @@ public class DetailActivity extends AppCompatActivity {
                             MovieContract.MovieEntry.COLUMN_MOVIE_ID + getString(R.string.selection),
                             new String[]{ movie.getId() }
                     );
-                    Toast.makeText(DetailActivity.this, "Removed!", Toast.LENGTH_LONG).show();
+                    Toast.makeText(DetailActivity.this, "Removed!", Toast.LENGTH_SHORT).show();
                 } else {
                     // Add record to faves
                     ContentValues values = new ContentValues();
@@ -208,10 +207,9 @@ public class DetailActivity extends AppCompatActivity {
                             .getBitmapInBytes(movieBackdrop.getDrawingCache()));
 
                     contentResolver.insert(MovieContract.BASE_CONTENT_URI, values);
-                    Toast.makeText(DetailActivity.this, "Faved", Toast.LENGTH_LONG).show();
+                    Toast.makeText(DetailActivity.this, "Movie added to favorites!", Toast.LENGTH_SHORT).show();
                 }
                 inDb = checkIifMovieIsInDatabase();
-                Log.d(TAG, "In db: " + inDb);
             }
         });
     }

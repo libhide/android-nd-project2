@@ -47,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Constants
     private static final String TAG = MainActivity.class.getSimpleName();
+
     public static final String MOVIE_DATA = "movie_data";
     public static final String MOVIES_DATA = "movies_data";
     public static final String IS_FAVE = "is_fave";
@@ -85,14 +86,15 @@ public class MainActivity extends AppCompatActivity {
         progressBar = (ProgressBar) findViewById(R.id.progressBar);
         moviesView = (RecyclerView) findViewById(R.id.moviesView);
 
+        isNetworkPresent = NetworkUtils.isNetworkAvailable(this);
+
         // State check
+        currentSortType = PrefsUtils.getSortType(this);
+        setToolbarTitle();
         if (savedInstanceState != null) {
-            currentSortType = PrefsUtils.getSortType(this);
             movies = (ArrayList<Movie>) savedInstanceState.getSerializable(MOVIES_DATA);
             progressBar.setVisibility(View.INVISIBLE);
         } else {
-            currentSortType = PrefsUtils.getSortType(this);
-            isNetworkPresent = NetworkUtils.isNetworkAvailable(this);
             if (isNetworkPresent) {
                 // YES, do the network call!
                 if (currentSortType.equals(SORT_BY_POPULARITY)) {
@@ -115,6 +117,22 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void setToolbarTitle() {
+        if (getSupportActionBar() != null) {
+            switch (currentSortType) {
+                case SORT_BY_POPULARITY:
+                    getSupportActionBar().setTitle(getString(R.string.app_name));
+                    break;
+                case SORT_BY_RATING:
+                    getSupportActionBar().setTitle(R.string.top_rated_title);
+                    break;
+                case SORT_BY_FAVE:
+                    getSupportActionBar().setTitle(R.string.favorite_title);
+                    break;
+            }
+        }
+    }
+
     private void setupRecyclerView() {
         moviesView.setHasFixedSize(true);
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
@@ -134,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
                                 Movie movie = movies.get(position);
                                 Intent intent = new Intent(MainActivity.this, DetailActivity.class);
                                 intent.putExtra(NETWORK_STATE, isNetworkPresent);
-                                if (currentSortType != SORT_BY_FAVE) {
+                                if (!currentSortType.equals(SORT_BY_FAVE)) {
                                     if (!movies.get(position).getPoster().isEmpty()) {
                                         intent.putExtra(MOVIE_DATA, movie);
                                         intent.putExtra(IS_FAVE, false);
@@ -157,12 +175,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (rvState != null) {
-            layoutManager.onRestoreInstanceState(rvState);
-        }
         if (currentSortType.equals(SORT_BY_FAVE)) {
-            movies.clear();
             fetchFaves();
+        } else {
+            if (rvState != null) {
+                layoutManager.onRestoreInstanceState(rvState);
+            }
         }
     }
 
@@ -207,6 +225,48 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    private void fetchFaves() {
+        currentSortType = SORT_BY_FAVE;
+
+        movies.clear();
+
+        Cursor cursor = getContentResolver().query(MovieContract.BASE_CONTENT_URI, null,
+                null, null, null);
+        if (cursor != null && cursor.getCount() > 0) {
+            cursor.moveToFirst();
+            do {
+                Movie movie = new Movie();
+
+                movie.setId(cursor.getString(cursor.getColumnIndex(
+                        MovieContract.MovieEntry.COLUMN_MOVIE_ID)));
+                movie.setTitle(cursor.getString(cursor.getColumnIndex(
+                        MovieContract.MovieEntry.COLUMN_TITLE)));
+                movie.setReleaseDate(cursor.getString(cursor.getColumnIndex(
+                        MovieContract.MovieEntry.COLUMN_RELEASE_DATE)));
+                movie.setVotesAverage(cursor.getString(cursor.getColumnIndex(
+                        MovieContract.MovieEntry.COLUMN_VOTES_AVG)));
+                movie.setPlot(cursor.getString(cursor.getColumnIndex(
+                        MovieContract.MovieEntry.COLUMN_PLOT)));
+
+                movie.setTrailerUrls(null);
+                movie.setMovieReviews(null);
+                movie.setPoster("");
+                movie.setPosterByteArray(cursor.getBlob(cursor.getColumnIndex(
+                        MovieContract.MovieEntry.COLUMN_POSTER)));
+                movie.setBackdrop("");
+                movie.setBackdropByteArray(cursor.getBlob(cursor.getColumnIndex(
+                        MovieContract.MovieEntry.COLUMN_BACKDROP)));
+
+                movies.add(movie);
+            } while (cursor.moveToNext());
+            cursor.close();
+        } else {
+            Toast.makeText(this, R.string.no_faves_message, Toast.LENGTH_SHORT).show();
+        }
+        adapter.notifyDataSetChanged();
+        progressBar.setVisibility(View.INVISIBLE);
     }
 
     // Populates movies data object
@@ -261,25 +321,27 @@ public class MainActivity extends AppCompatActivity {
         isNetworkPresent = NetworkUtils.isNetworkAvailable(this);
         switch (item.getItemId()) {
             case R.id.action_popular:
+                currentSortType = SORT_BY_POPULARITY;
                 if (isNetworkPresent) {
-                    currentSortType = SORT_BY_POPULARITY;
                     // Save sort type
                     PrefsUtils.setSortType(this, currentSortType);
                     // Fetch movies
                     fetchMovies(Constants.ORDER_BY_POPULARITY);
                 } else {
-                    Toast.makeText(MainActivity.this, "Network not available, sorry!", Toast.LENGTH_LONG).show();
+                    Toast.makeText(MainActivity.this, R.string.general_network_unavailable_message,
+                            Toast.LENGTH_SHORT).show();
                 }
                 break;
             case R.id.action_top_rated:
+                currentSortType = SORT_BY_RATING;
                 if (isNetworkPresent) {
-                    currentSortType = SORT_BY_RATING;
                     // Save sort type
                     PrefsUtils.setSortType(this, currentSortType);
                     // Fetch movies
                     fetchMovies(Constants.ORDER_BY_VOTES);
                 } else {
-                    Toast.makeText(MainActivity.this, "Network not available, sorry!", Toast.LENGTH_LONG).show();
+                    Toast.makeText(MainActivity.this, R.string.general_network_unavailable_message,
+                            Toast.LENGTH_SHORT).show();
                 }
                 break;
             case R.id.action_fave:
@@ -290,46 +352,7 @@ public class MainActivity extends AppCompatActivity {
                 fetchFaves();
                 break;
         }
+        setToolbarTitle();
         return super.onOptionsItemSelected(item);
-    }
-
-    private void fetchFaves() {
-        currentSortType = SORT_BY_FAVE;
-        Cursor cursor = getContentResolver().query(MovieContract.BASE_CONTENT_URI, null,
-                null, null, null);
-        if (cursor != null && cursor.getCount() > 0) {
-            movies.clear();
-            cursor.moveToFirst();
-            do {
-                Movie movie = new Movie();
-
-                movie.setId(cursor.getString(cursor.getColumnIndex(
-                        MovieContract.MovieEntry.COLUMN_MOVIE_ID)));
-                movie.setTitle(cursor.getString(cursor.getColumnIndex(
-                        MovieContract.MovieEntry.COLUMN_TITLE)));
-                movie.setReleaseDate(cursor.getString(cursor.getColumnIndex(
-                        MovieContract.MovieEntry.COLUMN_RELEASE_DATE)));
-                movie.setVotesAverage(cursor.getString(cursor.getColumnIndex(
-                        MovieContract.MovieEntry.COLUMN_VOTES_AVG)));
-                movie.setPlot(cursor.getString(cursor.getColumnIndex(
-                        MovieContract.MovieEntry.COLUMN_PLOT)));
-
-                movie.setTrailerUrls(null);
-                movie.setMovieReviews(null);
-                movie.setPoster("");
-                movie.setPosterByteArray(cursor.getBlob(cursor.getColumnIndex(
-                        MovieContract.MovieEntry.COLUMN_POSTER)));
-                movie.setBackdrop("");
-                movie.setBackdropByteArray(cursor.getBlob(cursor.getColumnIndex(
-                        MovieContract.MovieEntry.COLUMN_BACKDROP)));
-
-                movies.add(movie);
-            } while (cursor.moveToNext());
-            adapter.notifyDataSetChanged();
-            cursor.close();
-        } else {
-            Toast.makeText(this, "There are no favorites!", Toast.LENGTH_LONG).show();
-        }
-        progressBar.setVisibility(View.INVISIBLE);
     }
 }

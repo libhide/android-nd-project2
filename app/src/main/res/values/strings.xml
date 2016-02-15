@@ -2,7 +2,7 @@
     <string name="app_name">Popular Movies</string>
     <string name="generic_error_title">Oops, sorry!</string>
     <string name="generic_error_message">There was an error. Try again!</string>
-    <string name="network_unavailable_message">Network is unavailable. Trying to load favorites. </string>
+    <string name="network_unavailable_message">Network is unavailable. Loading favorites... </string>
     <string name="release_date_header_text">RELEASE DATE</string>
     <string name="vote_average_header_text">VOTE AVERAGE</string>
     <string name="vote_average_placeholder">%s / 10</string>
@@ -16,4 +16,8 @@
     <string name="share">Share</string>
     <string name="selection">=\?</string>
     <string name="type_fave">Favorite Movies</string>
+    <string name="general_network_unavailable_message">Network not available, sorry!</string>
+    <string name="no_faves_message">There are no favorites :(</string>
+    <string name="top_rated_title">Top-rated Movies</string>
+    <string name="favorite_title">Favorite Movies</string>
 </resources>
