@@ -73,6 +73,12 @@ public class MainActivity extends AppCompatActivity {
     private String currentSortType = SORT_BY_POPULARITY;
     private boolean isNetworkPresent;
 
+    /**
+     * Whether or not the activity is in two-pane mode, i.e. running on a tablet
+     * device.
+     */
+    public static boolean mTwoPane;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -109,6 +115,18 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
+        // Tablet check
+        if (findViewById(R.id.movie_detail_container) != null) {
+            // The detail container view will be present only in the
+            // large-screen layouts (res/values-sw600dp).
+            // If this view is present, then the
+            // activity should be in two-pane mode.
+            mTwoPane = true;
+
+            getFragmentManager().beginTransaction()
+                    .add(R.id.movie_detail_container, new DefaultDetailFragment()).commit();
+        }
+
         setupRecyclerView();
 
         // Get fave movies if network isn't present
@@ -135,10 +153,15 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupRecyclerView() {
         moviesView.setHasFixedSize(true);
-        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-            layoutManager = new GridLayoutManager(this, 2);
+        if (mTwoPane) {
+            layoutManager = new GridLayoutManager(this, 3);
         } else {
-            layoutManager = new GridLayoutManager(this, 4);
+            if (getResources().getConfiguration().orientation
+                    == Configuration.ORIENTATION_PORTRAIT) {
+                layoutManager = new GridLayoutManager(this, 2);
+            } else {
+                layoutManager = new GridLayoutManager(this, 4);
+            }
         }
         moviesView.setLayoutManager(layoutManager);
         adapter = new MovieAdapter(MainActivity.this, movies);
@@ -150,23 +173,44 @@ public class MainActivity extends AppCompatActivity {
                             @Override
                             public void onItemClick(View view, int position) {
                                 Movie movie = movies.get(position);
-                                Intent intent = new Intent(MainActivity.this, DetailActivity.class);
-                                intent.putExtra(NETWORK_STATE, isNetworkPresent);
-                                if (!currentSortType.equals(SORT_BY_FAVE)) {
-                                    if (!movies.get(position).getPoster().isEmpty()) {
-                                        intent.putExtra(MOVIE_DATA, movie);
-                                        intent.putExtra(IS_FAVE, false);
-                                        startActivity(intent);
+                                if (mTwoPane) {
+                                    DetailFragment detailFragment = new DetailFragment();
+                                    Bundle arguments = new Bundle();
+                                    arguments.putBoolean(NETWORK_STATE, isNetworkPresent);
+                                    if (!currentSortType.equals(SORT_BY_FAVE)) {
+                                        if (!movies.get(position).getPoster().isEmpty()) {
+                                            arguments.putParcelable(MOVIE_DATA, movie);
+                                            arguments.putBoolean(IS_FAVE, false);
+                                        } else {
+                                            Toast.makeText(MainActivity.this, R.string.corrupt_movie_data_error,
+                                                    Toast.LENGTH_LONG).show();
+                                        }
                                     } else {
-                                        Toast.makeText(MainActivity.this, R.string.corrupt_movie_data_error,
-                                                Toast.LENGTH_LONG).show();
+                                        arguments.putParcelable(MOVIE_DATA, movie);
+                                        arguments.putBoolean(IS_FAVE, true);
                                     }
+                                    detailFragment.setArguments(arguments);
+                                    getFragmentManager().beginTransaction()
+                                            .replace(R.id.movie_detail_container, detailFragment)
+                                            .commit();
                                 } else {
-                                    intent.putExtra(MOVIE_DATA, movie);
-                                    intent.putExtra(IS_FAVE, true);
-                                    startActivity(intent);
+                                    Intent intent = new Intent(MainActivity.this, DetailActivity.class);
+                                    intent.putExtra(NETWORK_STATE, isNetworkPresent);
+                                    if (!currentSortType.equals(SORT_BY_FAVE)) {
+                                        if (!movies.get(position).getPoster().isEmpty()) {
+                                            intent.putExtra(MOVIE_DATA, movie);
+                                            intent.putExtra(IS_FAVE, false);
+                                            startActivity(intent);
+                                        } else {
+                                            Toast.makeText(MainActivity.this, R.string.corrupt_movie_data_error,
+                                                    Toast.LENGTH_LONG).show();
+                                        }
+                                    } else {
+                                        intent.putExtra(MOVIE_DATA, movie);
+                                        intent.putExtra(IS_FAVE, true);
+                                        startActivity(intent);
+                                    }
                                 }
-
                             }
                         })
         );
@@ -229,6 +273,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void fetchFaves() {
         currentSortType = SORT_BY_FAVE;
+
+        setToolbarTitle();
 
         movies.clear();
 
