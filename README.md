@@ -1,4 +1,4 @@
-## Android Nanodegree Project 1, Stage 1 – Popular Movies
+## Android Nanodegree Project 1, Stage 2 – Popular Movies
 
 API key is not included, it needs to be added in `app/src/main/java/com/ratik/popularmovies/Keys.java` as 
 `public static final String API_KEY = "key_here"`.
